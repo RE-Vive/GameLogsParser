@@ -11,6 +11,11 @@
 		<plugins>
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-surefire-plugin</artifactId>
+				<version>2.22.0</version>
+			</plugin>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-compiler-plugin</artifactId>
 				<configuration>
 					<source>8</source>
@@ -19,11 +24,24 @@
 			</plugin>
 		</plugins>
 	</build>
+	<distributionManagement>
+		<snapshotRepository>
+			<id>revive-repository</id>
+			<name>revive-repository</name>
+			<url>https://nexus.mcrevive.net/repository/revive-public-snapshots/</url>
+		</snapshotRepository>
+	</distributionManagement>
 	<dependencies>
-<dependency>
-    <groupId>com.linkedin.migz</groupId>
-    <artifactId>migz</artifactId>
-    <version>2.0.beta-1</version>
-</dependency>
+		<dependency>
+			<groupId>org.junit.jupiter</groupId>
+			<artifactId>junit-jupiter-api</artifactId>
+			<version>5.8.0-M1</version>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>com.linkedin.migz</groupId>
+			<artifactId>migz</artifactId>
+			<version>2.0.beta-1</version>
+		</dependency>
 	</dependencies>
 </project>

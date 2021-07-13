@@ -4,9 +4,11 @@ import static org.junit.Assert.fail;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.nio.file.Files;
+import java.util.Arrays;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -43,6 +45,7 @@ class BedwarsTest {
 		GameLogSequence sequence = randomSequence();
 
 		byte[] resultingLog = this.bedwarsCreator.buildGameLog(sequence, false).toByteArray();
+		System.out.println(Arrays.toString(resultingLog));
 
 		GameLogSequence parsed = this.bedwarsCreator.parseGameLog(resultingLog, false);
 
@@ -81,5 +84,4 @@ class BedwarsTest {
 		// They are the same game, so it should always be 0
 		assertEquals(0, seq.getEvents().size() - sequ.getEvents().size());
 	}
-
 }

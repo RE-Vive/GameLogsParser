@@ -87,14 +87,14 @@ public class GameLogCreator {
 	public GameLogSequence parseGameLog(InputStream inputStream)
 			throws IOException, InstantiationException, IllegalAccessException, IllegalArgumentException,
 			InvocationTargetException, NoSuchMethodException, SecurityException, NullPointerException {
-		List<byte[]> stringPool = new ArrayList<>();
+		ByteArrayPool stringPool = new ByteArrayPool();
 		LogStream stream = new LogStream(stringPool, inputStream, null);
 		int poolSize = stream.readInt();
 		for (int i = 0; i < poolSize; i++) {
 			int size = stream.readInt();
 			byte[] lens = new byte[size];
 			stream.inputStream.read(lens, 0, size);
-			stringPool.add(lens);
+			stringPool.writePooledByteArray(lens);
 		}
 
 		GameLogSequence result = new GameLogSequence();
@@ -116,7 +116,7 @@ public class GameLogCreator {
 
 		ByteArrayOutputStream result = new ByteArrayOutputStream();
 		List<Pair<Long, GameLogEvent>> events = sequence.getEvents();
-		List<byte[]> byteArrayPool = new ArrayList<>();
+		ByteArrayPool byteArrayPool = new ByteArrayPool();
 
 		for (Pair<Long, GameLogEvent> current : events) {
 			ByteArrayOutputStream tempStream = new ByteArrayOutputStream();
@@ -135,7 +135,7 @@ public class GameLogCreator {
 		LogStream strm = new LogStream(null, null, finalStream);
 		strm.writeInt(byteArrayPool.size());
 		for (int i = 0; i < byteArrayPool.size(); i++) {
-			byte[] pooled = byteArrayPool.get(i);
+			byte[] pooled = byteArrayPool.readPooledByteArray(i);
 			strm.writeInt(pooled.length);
 			strm.getOutputStream().write(pooled);
 		}
@@ -146,16 +146,39 @@ public class GameLogCreator {
 		return finalStream;
 	}
 
+	public static class ByteArrayPool {
+		private List<byte[]> byteArrayPool = new ArrayList<>();
+		private Map<Integer, Integer> arrayHashes = new HashMap<>();
+		
+		public int size() {
+			return this.byteArrayPool.size();
+		}
+
+		public int writePooledByteArray(byte[] array) {
+			int hash = Arrays.hashCode(array);
+			int position = arrayHashes.getOrDefault(hash, -1);
+			if (position == -1) {
+				position = byteArrayPool.size();
+				this.arrayHashes.put(hash, position);
+				this.byteArrayPool.add(array);
+			}
+			return position;
+		}
+
+		public byte[] readPooledByteArray(int referrence) {
+			return this.byteArrayPool.get(referrence);
+		}
+	}
+
 	public static class LogStream {
-		private List<byte[]> stringPool;
-		private Map<Integer, Integer> hashes = new HashMap<>();
+		private ByteArrayPool bytePool;
 
 		private InputStream inputStream;
 		private OutputStream outputStream;
 
-		public LogStream(List<byte[]> stringPool, InputStream inputStream, OutputStream outputStream) {
+		public LogStream(ByteArrayPool bytePool, InputStream inputStream, OutputStream outputStream) {
 			super();
-			this.stringPool = stringPool;
+			this.bytePool = bytePool;
 			this.inputStream = inputStream;
 			this.outputStream = outputStream;
 		}
@@ -282,21 +305,12 @@ public class GameLogCreator {
 		}
 
 		public void writePooledByteArray(byte[] bytes) throws IOException {
-			int pos = -1;
-			int hash = Arrays.hashCode(bytes);
-			if (this.hashes.containsKey(hash)) {
-				pos = this.hashes.get(hash);
-			} else {
-				pos = this.stringPool.size();
-				this.stringPool.add(bytes);
-				this.hashes.put(hash, pos);
-			}
-			writeInt(pos);
+			writeInt(this.bytePool.writePooledByteArray(bytes));
 		}
 
 		public byte[] readPooledByteArray() throws IOException {
 			int pos = readInt();
-			return this.stringPool.get(pos);
+			return this.bytePool.readPooledByteArray(pos);
 		}
 
 		public void writePooledString(String str) throws IOException {
@@ -311,7 +325,6 @@ public class GameLogCreator {
 			ByteBuffer bb = ByteBuffer.wrap(new byte[16]);
 			bb.putLong(u.getMostSignificantBits());
 			bb.putLong(u.getLeastSignificantBits());
-
 			writePooledByteArray(bb.array());
 		}
 
